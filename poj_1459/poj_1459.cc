@@ -8,7 +8,7 @@ using namespace std;
 #define INF 0x3f3f3f3f
 
 int nn, np, nc, ne;
-vector<vector<int>> graph, rGraph;
+vector<vector<int>> rGraph;
 int sid, tid;
 
 vector<int> pred;
@@ -39,7 +39,6 @@ bool bfs()
 int maxFlow()
 {
     pred.resize(nn + 2);
-    rGraph = graph;
     int ans = 0;
     int uu, vv, flow;
     while (bfs())
@@ -64,10 +63,11 @@ int maxFlow()
 bool verbose = false;
 int main()
 {
+    ios_base::sync_with_stdio(0), cin.tie(0);
     char cc;
     while (cin >> nn >> np >> nc >> ne)
     {
-        graph.clear(), graph.resize(nn + 2, vector<int>(nn + 2, 0));
+        rGraph.clear(), rGraph.resize(nn + 2, vector<int>(nn + 2, 0));
         sid = 0, tid = nn + 1;
         int uu, vv;
         for (int ii = 0; ii < ne; ii++)
@@ -75,23 +75,24 @@ int main()
             cin >> cc >> uu >> cc >> vv >> cc; //(uu,vv)
             uu++;
             vv++;
-            cin >> graph[uu][vv];
-            if (verbose) cerr << uu << "," << vv << " " << graph[uu][vv] << endl;
+            cin >> rGraph[uu][vv];
+            if (verbose) cerr << uu << "," << vv << " " << rGraph[uu][vv] << endl;
         }
         for (int ii = 0; ii < np; ii++)
         {
             cin >> cc >> uu >> cc;
             uu++;
-            cin >> graph[sid][uu];
-            if (verbose) cerr << "powerStation " << uu << " : " << graph[sid][uu] << endl;
+            cin >> rGraph[sid][uu];
+            if (verbose) cerr << "powerStation " << uu << " : " << rGraph[sid][uu] << endl;
         }
         for (int ii = 0; ii < nc; ii++)
         {
             cin >> cc >> uu >> cc;
             uu++;
-            cin >> graph[uu][tid];
-            if (verbose) cerr << "consumer " << uu << " : " << graph[uu][tid] << endl;
+            cin >> rGraph[uu][tid];
+            if (verbose) cerr << "consumer " << uu << " : " << rGraph[uu][tid] << endl;
         }
         cout << maxFlow() << endl;
     }
+    return 0;
 }
