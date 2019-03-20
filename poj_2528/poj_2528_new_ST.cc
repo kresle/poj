@@ -1,31 +1,60 @@
 #include <iostream>
 #include <stdio.h>
 #include <algorithm>
-#include <vector>
 #include <set>
 #include <cstring>
 #include <queue>
-#include <math.h>
 using namespace std;
 
 #define INF 0x3f3f3f3f3f
 
 #define MAXNP 10000
 
-// #define VERBOSE
-
-int nb, nl, nst;
+int nn;
+int nb, nl, nst;// 出现的端点个数，满树情况下最后一层的个数，线段树的结点个数
 int bounds[MAXNP * 2];
 int posters[MAXNP][2];
-int st[MAXNP * 8];//这个是因为，可能的结点数做最后一层的叶结点，而满树的最后一层的最多叶结点可能是bounds大小的两倍，从而树的总结点数是bound大小的四倍
+// st是线段树对应结点内的海报信息。
+// 为0表示子树不统一，需要进一步考察子树情况。
+// 不为0表示以此结点为根的子树都是同一海报
+// 大小是MAXNP*8的原因：所有出现的端点做最后一层的叶结点，而满树的最后一层的最多叶结点可能是端点个数的两倍，从而树的总结点数是端点个数的四倍
+int st[MAXNP * 8]; 
+bool visible[MAXNP+1]; //对应编号的海报是否可见。
 
 inline int mid(int st, int ed) { return st + (ed - st) / 2; }
 
+// 对下面updateInfo的改进，这个是参考了csdn上代码的。
+void update(int cur, int sl, int sr, int ql, int qr, int pid)
+{
+    //如果两区间不相交
+    if (cur >= nst || sr<ql || sl>qr)
+        return;
+    //结点区间被更新区间完全覆盖
+    if (sl>=ql && sr<=qr)
+    {
+        st[cur] = pid;
+        return;
+    }
+    //结点区间不能被更新区间覆盖
+    //下压
+    if (st[cur] != 0)
+    {
+        st[cur * 2 + 1] = st[cur];
+        st[cur * 2 + 2] = st[cur];
+        st[cur] = 0;
+    }
+    int sm = mid(sl, sr);
+    if (sm>=ql) update(cur*2+1, sl, sm, ql, qr, pid);
+    if (sm<qr) update(cur*2+2, sm+1, sr, ql, qr, pid);
+}
+
+
+// cur: 当前结点
+// [ss,se]：当前结点负责的区间
+// [qs,qe]：要更新的区间
+// 将区间更新成pid海报
 void updateInfo(int cur, int ss, int se, int qs, int qe, int pid)
 {
-#ifdef VERBOSE
-    printf("updateInfo, nodeId = %d with interval [%d, %d], poster part [%d, %d] = %c\n", cur, ss, se, qs, qe, 'A' + pid - 1);
-#endif
     //递归 呈 长度不断缩小之势，当长度小于0时就可以终止
     if (cur >= nst || ss > se || qs > qe)
         return;
@@ -39,7 +68,7 @@ void updateInfo(int cur, int ss, int se, int qs, int qe, int pid)
         return;
     }
     //包含
-    //值下压
+    //父结点的值下压到子结点
     if (st[cur] != 0)
     {
         st[cur * 2 + 1] = st[cur];
@@ -56,20 +85,20 @@ void updateInfo(int cur, int ss, int se, int qs, int qe, int pid)
 
 int bfs()
 {
-    set<int> vp;
+    // set<int> vp;//集合的速度还是太慢
     queue<int> qq, lvl_qq;
-    qq.push(0);
+    if (st[0] != 0) 
+        // vp.insert(st[0]);
+        visible[st[0]] = true;
+    else
+        qq.push(0);
     while (!qq.empty() && qq.front() < nst)
     {
         while (!qq.empty() && qq.front() < nst)
         {
-#ifdef VERBOSE
-            cerr << st[qq.front()] << " ";
-#endif
             if (st[qq.front()] != 0)
-            {
-                vp.insert(st[qq.front()]);
-            }
+                // vp.insert(st[qq.front()]);
+                visible[st[qq.front()]] = true;
             else
             {
                 lvl_qq.push(qq.front() * 2 + 1);
@@ -77,28 +106,32 @@ int bfs()
             }
             qq.pop();
         }
-#ifdef VERBOSE
-        cerr << endl;
-#endif
         swap(qq, lvl_qq);
     }
-    return vp.size();
+    int cnt =0;
+    for(int ii=1;ii<=nn;ii++) cnt+=visible[ii];
+    return cnt;
+    // return vp.size();
 }
 
 int main()
 {
     ios_base::sync_with_stdio(0), cin.tie(0);
-    int kk, nn;
+    int kk;
     cin >> kk;
+    // scanf("%d", &kk);
     while (kk--)
     {
         memset(st, 0, sizeof(st));
+        memset(visible, 0, sizeof(visible));
         cin >> nn;
+        // scanf("%d", &nn);
         int lb, rb;
         int cnt = 0;
         for (int ii = 0; ii < nn; ii++)
         {
             cin >> lb >> rb;
+            // scanf("%d%d", &lb, &rb);
             posters[ii][0] = lb;
             posters[ii][1] = rb;
             bounds[cnt++] = lb;
@@ -108,28 +141,20 @@ int main()
         nb = unique(bounds, bounds + 2 * nn) - bounds;
         int tmp = nb;
         nl = 1;
-        while(tmp)
+        while (tmp)
         {
             nl = nl << 1;
             tmp = tmp >> 1;
         }
-        // nl = pow(2, ceil(log2(nb))); //最后一层的结点数
-        nst = nl - 1 + nb;   //总共有多少结点
-#ifdef VERBOSE
-        for (int ii = 0; ii < nb; ii++)
-            cerr << bounds[ii] << " ";
-        cerr << endl;
-#endif
+        nst = nl - 1 + nb; //总共有多少结点
         for (int ii = 0; ii < nn; ii++)
         {
             int st = lower_bound(bounds, bounds + nb, posters[ii][0]) - bounds;
             int ed = lower_bound(bounds, bounds + nb, posters[ii][1]) - bounds;
-            updateInfo(0, 0, nl - 1, st, ed, ii + 1);
-#ifdef VERBOSE
-            bfs();
-            cerr << string(100, '-') << endl;
-#endif
+            // updateInfo(0, 0, nl - 1, st, ed, ii + 1);
+            update(0, 0, nl - 1, st, ed, ii + 1);
         }
         cout << bfs() << endl;
+        // printf("%d\n", bfs());
     }
 }

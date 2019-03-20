@@ -17,8 +17,6 @@ struct node
     node(int ll, int rr, int idd) : id(idd), lb(ll), rb(rr), left(NULL), right(NULL) {}
 };
 
-// set<node*> leafNodes;
-
 void insertNode(node *root, int ll, int rr, int id)
 {
     //必须保证[ll,rr]在此结点范围内
@@ -29,14 +27,12 @@ void insertNode(node *root, int ll, int rr, int id)
         root->id = id;
         if (root->left)
         {
-            // if (leafNodes.find(root->left)!=leafNodes.end()) leafNodes.erase(root->left);
-            //delete root->left;
+            delete root->left;
             root->left = NULL;
         }
         if (root->right)
         {
-            // if (leafNodes.find(root->right)!=leafNodes.end()) leafNodes.erase(root->right);
-            //delete root->right;
+            delete root->right;
             root->right = NULL;
         }
         return;
@@ -46,22 +42,17 @@ void insertNode(node *root, int ll, int rr, int id)
     //如果root是叶结点：
     if (root->left == NULL && root->right == NULL)
     {
-        // leafNodes.erase(root);
         //把此结点拆成两份，一份继承此结点的id，别外一份再递归添加ll，rr
         if (root->lb < ll)
         {
             root->left = new node(root->lb, ll - 1, root->id);
             root->right = new node(ll, root->rb, root->id);
             insertNode(root->right, ll, rr, id);
-            // leafNodes.insert(root->left);
-            // leafNodes.insert(root->right);
         }
         else
         { //lb == ll
             root->left = new node(ll, rr, id);
             root->right = new node(rr + 1, root->rb, root->id);
-            // leafNodes.insert(root->left);
-            // leafNodes.insert(root->right);
         }
         return;
     }
@@ -101,7 +92,7 @@ int bfs(node *root)
         if (cur->right)
             qq.push(cur->right);
         qq.pop();
-        //delete cur;
+        delete cur;
     }
     return vp.size();
 }
@@ -113,7 +104,6 @@ int main()
     cin >> kk;
     while (kk--)
     {
-        // leafNodes.clear();
         cin >> nn;
         int lb, rb;
         node *root = new node(1, MAXLEN, 0);
@@ -122,11 +112,6 @@ int main()
             cin >> lb >> rb;
             insertNode(root, lb, rb, ii);
         }
-        // set<int> vp;
-        // for(auto it: leafNodes)
-        // {
-        //     if (it->id) vp.insert(it->id);
-        // }
         cout << bfs(root) << endl;
     }
 }
